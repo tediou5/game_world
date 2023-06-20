@@ -1,3 +1,4 @@
+#![feature(result_option_inspect, let_chains)]
 mod app;
 pub mod network;
 pub mod node;
@@ -24,6 +25,7 @@ openraft::declare_raft_types!(
 );
 
 pub type Raft = openraft::Raft<TypeConfig, Network, std::sync::Arc<store::Store>>;
+pub static RAFT_CLIENT: std::sync::OnceLock<crate::Raft> = std::sync::OnceLock::new();
 
 pub mod typ {
     use crate::Node;
@@ -64,6 +66,11 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
     // Create a local raft instance.
     let raft = Raft::new(node_id, config.clone(), network, store.clone())
         .await
+        .unwrap();
+
+    RAFT_CLIENT
+        .set(raft.clone())
+        .map_err(|_e| "set RAFT CLIENT error".to_string())
         .unwrap();
 
     // Create an application that will store all the instances created above, this will

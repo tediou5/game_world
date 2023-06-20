@@ -1,8 +1,8 @@
+#[derive(Clone, Debug)]
 pub struct Network {}
 
 impl Network {
     pub async fn send_rpc<Req, Resp, Err>(
-        &self,
         target: crate::NodeId,
         target_node: &crate::Node,
         uri: &str,
@@ -52,18 +52,18 @@ impl Network {
 impl openraft::RaftNetworkFactory<crate::TypeConfig> for Network {
     type Network = NetworkConnection;
 
-    async fn new_client(&mut self, target: crate::NodeId, node: &crate::Node) -> Self::Network {
+    async fn new_client(&mut self, _target: crate::NodeId, node: &crate::Node) -> Self::Network {
         NetworkConnection {
-            owner: Network {},
-            target,
+            // owner: Network {},
+            retry_times: 0,
             target_node: node.clone(),
         }
     }
 }
 
 pub struct NetworkConnection {
-    owner: Network,
-    target: crate::NodeId,
+    // owner: Network,
+    retry_times: u8,
     target_node: crate::Node,
 }
 
@@ -80,9 +80,41 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
             openraft::error::RaftError<crate::NodeId>,
         >,
     > {
-        self.owner
-            .send_rpc(self.target, &self.target_node, "raft-append", req)
-            .await
+        let res = Network::send_rpc(
+            self.target_node.gen_id().unwrap(),
+            &self.target_node,
+            "raft-append",
+            req,
+        )
+        .await;
+
+        match &res {
+            Ok(_) => self.retry_times = 0,
+            Err(_) => {
+                self.retry_times += 1;
+                if self.retry_times > 5 {
+                    // TODO: remove node: Raft::change_membership()
+                    if let Some(raft) = crate::RAFT_CLIENT.get() &&
+                    let Some(current_leader) = raft.current_leader().await {
+                        let membership_config = &raft.metrics();
+                        let membership_config = &membership_config.borrow().membership_config;
+                        let leader = membership_config.membership().get_node(&current_leader).unwrap().clone();
+                        let mut members: std::collections::BTreeSet<crate::NodeId>= membership_config
+                            .nodes()
+                            .map(|(id, _)| *id)
+                            .collect();
+                        members.remove(&self.target_node.gen_id().unwrap());
+
+                        tokio::task::spawn(async move {
+                            let _: Result<crate::typ::ClientWriteResponse, openraft::error::RPCError<u64, crate::node::Node, openraft::error::ClientWriteError<crate::NodeId, crate::Node>>>
+                                = Network::send_rpc(current_leader, &leader, "change-membership", members).await;
+                        });
+                    }
+                }
+            }
+        }
+
+        res
     }
 
     async fn send_install_snapshot(
@@ -96,9 +128,13 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
             openraft::error::RaftError<crate::NodeId, openraft::error::InstallSnapshotError>,
         >,
     > {
-        self.owner
-            .send_rpc(self.target, &self.target_node, "raft-snapshot", req)
-            .await
+        Network::send_rpc(
+            self.target_node.gen_id().unwrap(),
+            &self.target_node,
+            "raft-snapshot",
+            req,
+        )
+        .await
     }
 
     async fn send_vote(
@@ -112,9 +148,13 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
             openraft::error::RaftError<crate::NodeId>,
         >,
     > {
-        self.owner
-            .send_rpc(self.target, &self.target_node, "raft-vote", req)
-            .await
+        Network::send_rpc(
+            self.target_node.gen_id().unwrap(),
+            &self.target_node,
+            "raft-vote",
+            req,
+        )
+        .await
     }
 }
 
