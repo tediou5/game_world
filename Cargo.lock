@@ -660,6 +660,7 @@ dependencies = [
  "async-trait",
  "clap",
  "openraft",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",

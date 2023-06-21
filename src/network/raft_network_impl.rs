@@ -81,7 +81,7 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
         >,
     > {
         let res = Network::send_rpc(
-            self.target_node.gen_id().unwrap(),
+            self.target_node.get_id().unwrap(),
             &self.target_node,
             "raft-append",
             req,
@@ -103,7 +103,7 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
                             .nodes()
                             .map(|(id, _)| *id)
                             .collect();
-                        members.remove(&self.target_node.gen_id().unwrap());
+                        members.remove(&self.target_node.get_id().unwrap());
 
                         tokio::task::spawn(async move {
                             let _: Result<crate::typ::ClientWriteResponse, openraft::error::RPCError<u64, crate::node::Node, openraft::error::ClientWriteError<crate::NodeId, crate::Node>>>
@@ -129,7 +129,7 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
         >,
     > {
         Network::send_rpc(
-            self.target_node.gen_id().unwrap(),
+            self.target_node.get_id().unwrap(),
             &self.target_node,
             "raft-snapshot",
             req,
@@ -149,7 +149,7 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
         >,
     > {
         Network::send_rpc(
-            self.target_node.gen_id().unwrap(),
+            self.target_node.get_id().unwrap(),
             &self.target_node,
             "raft-vote",
             req,

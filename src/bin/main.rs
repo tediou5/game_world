@@ -43,4 +43,6 @@ async fn main() -> std::io::Result<()> {
     let opt = Opt::parse();
 
     start_raft_node(opt.into()).await
+    // start_user_node(opt.into()).await
+    // start_compute_node(opt.into()).await
 }

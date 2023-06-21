@@ -8,12 +8,32 @@ pub struct Slots {
 impl Default for Slots {
     fn default() -> Self {
         Self {
-            inner: vec![crate::Node::Unknow; 10000],
+            inner: vec![crate::Node::Unknow; 100],
         }
     }
 }
 
 impl Slots {
+    pub fn get_node(&self, slot: usize) -> Option<&crate::Node> {
+        self.inner.get(slot)
+    }
+
+    pub fn get_nodes(
+        &self,
+        slots: Vec<usize>,
+    ) -> std::collections::HashMap<&crate::Node, Vec<usize>> {
+        let mut nodes: std::collections::HashMap<&crate::node::Node, Vec<usize>> =
+            std::collections::HashMap::new();
+        slots
+            .iter()
+            .filter_map(|slot| self.get_node(*slot))
+            .enumerate()
+            .for_each(|(slot, node)| {
+                nodes.entry(node).or_default().push(slot);
+            });
+        nodes
+    }
+
     pub fn check(&self) -> bool {
         for node in self.inner.iter() {
             if let crate::Node::Compute(_) = node {
@@ -46,7 +66,7 @@ impl Slots {
         }
         node_slots
             .into_iter()
-            .map(|(node, slots)| (node.gen_id().unwrap(), slots))
+            .map(|(node, slots)| (node.get_id().unwrap(), slots))
             .collect()
     }
 
@@ -54,12 +74,22 @@ impl Slots {
         // Int((x + 100000) / 2000) + (100 * Int((y + 100000) / 2000)).
         let crate::Vector2 { x, y } = position;
 
-        let x = x + 100000.0;
+        let mut x = x + 100000.0;
+        if x < 0.0 {
+            x = 0.0;
+        } else if x > 200000.0 {
+            x = 200000.0;
+        }
+
         let x = (x / 20000.0) as usize;
 
         let mut y = y + 100000.0;
         if y == 200000.0 {
-            y -= 1.0;
+            y = 190000.0;
+        } else if y < 0.0 {
+            y = 0.0;
+        } else if y > 200000.0 {
+            y = 190000.0;
         }
         let y = (y / 20000.0) as usize;
         let y = 10 * y;
@@ -74,7 +104,7 @@ impl Slots {
         let mut res = Vec::new();
         let mut min = Slots::from_position(&min);
         let mut max = Slots::from_position(&max);
-        
+
         if min > max {
             std::mem::swap(&mut min, &mut max);
         }
@@ -91,6 +121,18 @@ impl Slots {
         }
 
         res
+    }
+
+    pub fn from_radius(position: &crate::Vector2, radius: f32) -> Vec<usize> {
+        let max = crate::Vector2 {
+            x: position.x + radius,
+            y: position.y + radius,
+        };
+        let min = crate::Vector2 {
+            x: position.x - radius,
+            y: position.y - radius,
+        };
+        Self::from_area(&min, &max)
     }
 }
 
@@ -109,6 +151,11 @@ mod test {
         };
         assert_eq!(0, Slots::from_position(&position));
         let position = Vector2 {
+            x: -200000.0,
+            y: -200000.0,
+        };
+        assert_eq!(0, Slots::from_position(&position));
+        let position = Vector2 {
             x: 100000.0,
             y: -100000.0,
         };
@@ -116,6 +163,11 @@ mod test {
         let position = Vector2 {
             x: 100000.0,
             y: 100000.0,
+        };
+        assert_eq!(100, Slots::from_position(&position));
+        let position = Vector2 {
+            x: 200000.0,
+            y: 200000.0,
         };
         assert_eq!(100, Slots::from_position(&position));
         let position = Vector2 {

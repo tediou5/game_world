@@ -22,3 +22,4 @@ tokio = { version = "1.0", default-features = false, features = ["full"] }
 tracing = "0.1.29"
 tracing-futures = "0.2.4"
 tracing-subscriber = { version = "0.3.0", features = ["env-filter"] }
+rand = "0.8.5"

@@ -1,7 +1,8 @@
-#![feature(result_option_inspect, let_chains)]
+#![feature(result_option_inspect, let_chains, iter_collect_into)]
 mod app;
 pub mod network;
 pub mod node;
+mod request;
 mod slot;
 mod socket_id;
 pub mod store;
@@ -11,6 +12,7 @@ mod vector;
 use app::App;
 use network::raft_network_impl::Network;
 use node::Node;
+use request::{ComputeRequest, StepCompute};
 use slot::Slots;
 use store::Store;
 use user::User;
@@ -62,7 +64,7 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
     // will be used in conjunction with the store created above.
     let network = Network {};
 
-    let node_id = node.gen_id().unwrap();
+    let node_id = node.get_id().unwrap();
     // Create a local raft instance.
     let raft = Raft::new(node_id, config.clone(), network, store.clone())
         .await
@@ -73,13 +75,18 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
         .map_err(|_e| "set RAFT CLIENT error".to_string())
         .unwrap();
 
+    let users = std::collections::HashMap::new();
+    let users = tokio::sync::RwLock::new(users);
+
     // Create an application that will store all the instances created above, this will
     // be later used on the actix-web services.
     let app = actix_web::web::Data::new(App {
         typ: node,
         raft,
+        users,
         store,
         config,
+        http_client: reqwest::Client::new(),
     });
 
     // Start the actix-web server.

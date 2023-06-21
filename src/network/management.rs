@@ -48,7 +48,7 @@ pub async fn init(
     let mut nodes = std::collections::BTreeMap::new();
     let node = &app.typ;
     println!("Initializing: {node:?}");
-    nodes.insert(node.gen_id()?, node.clone());
+    nodes.insert(node.get_id()?, node.clone());
     let res = app.raft.initialize(nodes).await;
     Ok(actix_web::web::Json(res))
 }
