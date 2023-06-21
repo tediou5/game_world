@@ -20,11 +20,10 @@ pub async fn read(
     app: actix_web::web::Data<crate::App>,
 ) -> actix_web::Result<impl actix_web::Responder> {
     let state_machine = app.store.state_machine.read().await;
-    let slots: std::collections::HashMap<String, std::collections::HashSet<usize>> =
-        state_machine.slots.with_node();
+    let slots = state_machine.slots.with_node();
 
     let res: Result<
-        std::collections::HashMap<String, std::collections::HashSet<usize>>,
+        std::collections::HashMap<u64, std::collections::HashSet<usize>>,
         openraft::error::Infallible,
     > = Ok(slots);
     Ok(actix_web::web::Json(res))
