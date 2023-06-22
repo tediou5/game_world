@@ -1,5 +1,6 @@
 #![feature(result_option_inspect, let_chains, iter_collect_into)]
 mod app;
+mod conhash;
 pub mod network;
 pub mod node;
 mod request;
@@ -9,13 +10,13 @@ pub mod store;
 mod user;
 mod vector;
 
-use app::App;
+use app::{App, AppData};
 use network::raft_network_impl::Network;
 use node::Node;
 use request::{ComputeRequest, StepCompute};
 use slot::Slots;
 use store::Store;
-use user::User;
+use user::{ComputeUser, User};
 use vector::Vector2;
 
 pub const SLOT_NUMBER: usize = 10000;
@@ -75,8 +76,17 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
         .map_err(|_e| "set RAFT CLIENT error".to_string())
         .unwrap();
 
-    let users = std::collections::HashMap::new();
-    let users = tokio::sync::RwLock::new(users);
+    let users = match &node {
+        Node::User(_) => {
+            let users = std::collections::HashMap::new();
+            AppData::User(users.into())
+        }
+        Node::Compute(_) => {
+            let users = std::collections::HashMap::new();
+            AppData::Compute(users.into())
+        }
+        Node::Unknow => panic!(),
+    };
 
     // Create an application that will store all the instances created above, this will
     // be later used on the actix-web services.
@@ -87,6 +97,16 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
         store,
         config,
         http_client: reqwest::Client::new(),
+    });
+
+    let app_c = app.clone();
+
+    tokio::task::spawn(async move {
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+            // close task if error
+            app_c.compute().await.unwrap();
+        }
     });
 
     // Start the actix-web server.

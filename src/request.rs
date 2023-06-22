@@ -1,8 +1,8 @@
-#[derive(serde::Serialize, serde::Deserialize, Default, Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Default, Debug, Clone)]
 pub struct StepCompute {
-    logout: Option<u64 /* uid */>,
-    set_velocity: Option<(u64 /* uid */, crate::Vector2 /* velocity */)>,
-    aoe: Vec<(
+    pub logout: Option<u64 /* uid */>,
+    pub set_velocity: Option<(u64 /* uid */, crate::Vector2 /* velocity */)>,
+    pub aoe: Vec<(
         u64, /* uid */
         f32, /* radius */
         u64, /* money */
@@ -20,14 +20,18 @@ impl StepCompute {
         }
     }
 
-    pub fn clear(&mut self) -> Self {
+    pub fn clear(&mut self) -> Option<Self> {
+        if self.aoe.is_empty() && self.logout.is_none() && self.set_velocity.is_none() {
+            return None;
+        }
+
         let step = self.clone();
 
         self.aoe.clear();
         self.logout = None;
         self.set_velocity = None;
 
-        step
+        Some(step)
     }
 }
 

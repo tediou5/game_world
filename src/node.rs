@@ -22,4 +22,11 @@ impl Node {
             Node::Unknow => panic!("unknow node"),
         }
     }
+
+    pub fn is_user_node(&self) -> bool {
+        match self {
+            Node::User(_) => true,
+            _ => false,
+        }
+    }
 }
