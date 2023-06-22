@@ -56,11 +56,9 @@ pub async fn logout(
     let actix_web::web::Json(crate::request::Uid { uid }) = req;
     let com_req = crate::ComputeRequest::Logout(uid);
     if let crate::AppData::User(users) = &app.users {
-        users
-            .write()
-            .await
-            .get_mut(&uid)
-            .map(|user| user.add_compute_request(com_req));
+        if let Some(user) = users.write().await.get_mut(&uid) {
+            user.add_compute_request(com_req)
+        };
     }
 
     Ok(actix_web::web::Json("ok"))
@@ -75,11 +73,9 @@ pub async fn set_velcoity(
     let uid = set_velcoity.uid;
     let com_req = crate::ComputeRequest::SetVelocity(set_velcoity);
     if let crate::AppData::User(users) = &app.users {
-        users
-            .write()
-            .await
-            .get_mut(&uid)
-            .map(|user| user.add_compute_request(com_req));
+        if let Some(user) = users.write().await.get_mut(&uid) {
+            user.add_compute_request(com_req)
+        };
     }
 
     Ok(actix_web::web::Json("ok"))
@@ -94,11 +90,9 @@ pub async fn aoe(
     let uid = aoe.uid;
     let com_req = crate::ComputeRequest::Aoe(aoe);
     if let crate::AppData::User(users) = &app.users {
-        users
-            .write()
-            .await
-            .get_mut(&uid)
-            .map(|user| user.add_compute_request(com_req));
+        if let Some(user) = users.write().await.get_mut(&uid) {
+            user.add_compute_request(com_req)
+        };
     }
 
     Ok(actix_web::web::Json("ok"))
@@ -134,8 +128,8 @@ pub async fn next_step(
         let mut users = users.write().await;
         for (uid, step) in user_steps.iter() {
             if let Some(user) = users.get_mut(uid) {
-                let (step_num, step) = user.compute_next(*step);
-                res.insert(step_num, step);
+                let (_step_num, step) = user.compute_next(*step);
+                res.insert(*uid, step);
             }
         }
     }

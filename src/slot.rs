@@ -102,8 +102,8 @@ impl Slots {
     // 12 13 14
     pub fn from_area(min: &crate::Vector2, max: &crate::Vector2) -> Vec<usize> {
         let mut res = Vec::new();
-        let mut min = Slots::from_position(&min);
-        let mut max = Slots::from_position(&max);
+        let mut min = Slots::from_position(min);
+        let mut max = Slots::from_position(max);
 
         if min > max {
             std::mem::swap(&mut min, &mut max);

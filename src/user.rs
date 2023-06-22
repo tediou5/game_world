@@ -10,6 +10,79 @@ impl ComputeUser {
     pub fn get_slot(&self) -> usize {
         crate::Slots::from_position(&self.position)
     }
+
+    pub fn compute(
+        &mut self,
+        mut steps: Vec<crate::StepCompute>,
+        node_slots: &crate::Slots,
+        http_client: &reqwest::Client,
+    ) -> Option<Self> {
+        let times = steps.len();
+        if times == 0 {
+            return None;
+        }
+
+        let latest = steps.pop();
+        for mut step in steps.into_iter() {
+            step.aoes.clear();
+            step.logout = None;
+            self.compute_once(step, node_slots, http_client);
+        }
+        if let Some(latest) = latest {
+            self.compute_once(latest, node_slots, http_client)
+        } else {
+            None
+        }
+    }
+
+    fn compute_once(
+        &mut self,
+        crate::StepCompute {
+            logout,
+            set_velocity,
+            aoes, // uid, radius, money
+        }: crate::StepCompute,
+        node_slots: &crate::Slots,
+        http_client: &reqwest::Client,
+    ) -> Option<Self> {
+        self.step += 1;
+        if let Some((_, velocity)) = set_velocity {
+            self.velocity = velocity;
+        }
+
+        for (uid, radius, money) in aoes.into_iter() {
+            // let aoe_nodes = std::collections::HashSet::new();
+            let aoe_slots = crate::Slots::from_radius(&self.position, radius);
+            let aoe_nodes = node_slots.get_nodes(aoe_slots);
+            for (node, _slots) in aoe_nodes.into_iter() {
+                if let Ok(addr) = node.get_addr() {
+                    let url = format!("http://{addr}/aoe");
+                    let client = http_client.clone();
+                    let position = self.position.clone();
+                    tokio::task::spawn(async move {
+                        let _ = client
+                            .post(url)
+                            .json(&crate::SubAoe {
+                                uid,
+                                position,
+                                radius,
+                                money,
+                            })
+                            .send()
+                            .await;
+                    });
+                };
+            }
+        }
+
+        self.position.move_once(&self.velocity);
+
+        if logout.is_some() {
+            Some(self.clone())
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -44,9 +117,7 @@ impl User {
         &mut self,
         old_step: usize,
     ) -> (usize /* step num */, Vec<crate::StepCompute>) {
-        if let Some(step) = self.next_step.clear() {
-            self.steps.push(step);
-        }
+        self.steps.push(self.next_step.clear());
 
         (self.steps.len(), self.steps[old_step..].to_vec())
     }
@@ -105,7 +176,7 @@ mod test {
         let step = StepCompute {
             logout: None,
             set_velocity: Some((0, Vector2 { x: 0.0, y: 0.0 })),
-            aoe: vec![(0, 5.0, 100), (0, 6.0, 100)],
+            aoes: vec![(0, 5.0, 100), (0, 6.0, 100)],
         };
         let step = vec![step.clone()];
 
@@ -131,7 +202,7 @@ mod test {
         let step = StepCompute {
             logout: None,
             set_velocity: Some((0, Vector2 { x: 0.0, y: 0.0 })),
-            aoe: vec![(0, 5.0, 100), (0, 6.0, 100)],
+            aoes: vec![(0, 5.0, 100), (0, 6.0, 100)],
         };
         let step = vec![step.clone(), step];
 
@@ -139,7 +210,7 @@ mod test {
         assert_eq!(b_step, step);
 
         let (c_step_num, c_step) = user.compute_next(2);
-        assert_eq!(c_step_num, 2);
-        assert_eq!(c_step.len(), 0);
+        assert_eq!(c_step_num, 3);
+        assert_eq!(c_step.len(), 1);
     }
 }

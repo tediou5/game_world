@@ -13,7 +13,7 @@ mod vector;
 use app::{App, AppData};
 use network::raft_network_impl::Network;
 use node::Node;
-use request::{ComputeRequest, StepCompute};
+use request::{ComputeRequest, StepCompute, SubAoe};
 use slot::Slots;
 use store::Store;
 use user::{ComputeUser, User};

@@ -19,10 +19,10 @@ impl App {
         };
 
         let mut req = std::collections::HashMap::new();
-        let slots = slots.write().await;
+        let mut slots = slots.write().await;
         for (_, slot_users) in slots.iter() {
             for (uid, crate::user::ComputeUser { step, .. }) in slot_users {
-                req.insert(uid, step);
+                req.insert(*uid, *step);
             }
         }
 
@@ -34,15 +34,32 @@ impl App {
         {
             let mut step_computes = std::collections::HashMap::new();
             if let Ok(addr) = node.get_addr() {
+                let mut logout_users = std::collections::HashMap::new();
+
                 let url = format!("http://{addr}/next_step");
                 // FIXME: handle error
                 if let Ok(resp) = self.http_client.get(url).json(&req).send().await &&
-                let Ok(steps) = resp.json::<std::collections::HashMap<usize, Vec<crate::request::StepCompute>>>().await {
+                let Ok(steps) = resp.json::<std::collections::HashMap<u64, Vec<crate::request::StepCompute>>>().await {
                     steps.clone_into(&mut step_computes);
                 };
-            };
+                let node_slots = &nodes.slots;
+                // TODO: compute user
+                for (_, slot_users) in slots.iter_mut() {
+                    for (uid, user) in slot_users {
+                        if let Some(steps) = step_computes.remove(uid) &&
+                        let Some(logout) = user.compute(steps, node_slots, &self.http_client) {
+                            logout_users.insert(*uid, logout);
+                        };
+                    }
+                }
 
-            // TODO: compute user
+                // logout, callback to user node to update user info
+                let url = format!("http://{addr}/users");
+                let http_client = self.http_client.clone();
+                tokio::task::spawn(async move {
+                    let _ = http_client.put(url).json(&logout_users).send().await;
+                });
+            };
         };
 
         Ok(())

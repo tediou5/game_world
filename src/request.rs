@@ -2,7 +2,7 @@
 pub struct StepCompute {
     pub logout: Option<u64 /* uid */>,
     pub set_velocity: Option<(u64 /* uid */, crate::Vector2 /* velocity */)>,
-    pub aoe: Vec<(
+    pub aoes: Vec<(
         u64, /* uid */
         f32, /* radius */
         u64, /* money */
@@ -16,22 +16,18 @@ impl StepCompute {
             ComputeRequest::SetVelocity(SetVelocity { uid, velocity }) => {
                 self.set_velocity = Some((uid, velocity))
             }
-            ComputeRequest::Aoe(Aoe { uid, radius, money }) => self.aoe.push((uid, radius, money)),
+            ComputeRequest::Aoe(Aoe { uid, radius, money }) => self.aoes.push((uid, radius, money)),
         }
     }
 
-    pub fn clear(&mut self) -> Option<Self> {
-        if self.aoe.is_empty() && self.logout.is_none() && self.set_velocity.is_none() {
-            return None;
-        }
-
+    pub fn clear(&mut self) -> Self {
         let step = self.clone();
 
-        self.aoe.clear();
+        self.aoes.clear();
         self.logout = None;
         self.set_velocity = None;
 
-        Some(step)
+        step
     }
 }
 
@@ -64,4 +60,12 @@ pub struct Aoe {
 pub struct Query {
     pub min: crate::Vector2,
     pub max: crate::Vector2,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct SubAoe {
+    pub uid: u64,
+    pub position: crate::Vector2,
+    pub radius: f32,
+    pub money: u64,
 }

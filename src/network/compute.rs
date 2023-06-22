@@ -1,16 +1,10 @@
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct SubAoe {
-    position: crate::Vector2,
-    radius: f32,
-    money: u64,
-}
-
 #[actix_web::post("/aoe")]
 pub async fn aoe(
     app: actix_web::web::Data<crate::App>,
-    req: actix_web::web::Json<SubAoe>,
+    req: actix_web::web::Json<crate::SubAoe>,
 ) -> actix_web::Result<impl actix_web::Responder> {
-    let actix_web::web::Json(SubAoe {
+    let actix_web::web::Json(crate::SubAoe {
+        uid,
         position,
         radius,
         money,
@@ -22,12 +16,14 @@ pub async fn aoe(
                 .iter_mut()
                 .filter(
                     |(
-                        _,
+                        user_id,
                         crate::ComputeUser {
                             position: user_position,
                             ..
                         },
-                    )| { position.length(user_position) < radius },
+                    )| {
+                        position.length(user_position) < radius && (**user_id != uid)
+                    },
                 )
                 .for_each(|(_, user)| {
                     user.money += money;

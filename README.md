@@ -2,9 +2,9 @@
 
 author: tedious
 
-data: 2023-6-15
+data: 2023-6-23
 
-version: 0.0.0
+version: 0.8.0
 
 ## Road Map
 
@@ -19,10 +19,10 @@ version: 0.0.0
   - [x] API:v0.2
   - [x] 用户请求日志:v0.3
   - [x] 主逻辑完成:v0.4
-- [ ] 计算集群:v8.0
+- [x] 计算集群:v8.0
   - [x] API:v0.6
   - [x] Slot手动迁移:v0.7
-  - [ ] 主逻辑完成:v8.0
+  - [x] 主逻辑完成:v8.0
 - [ ] 集成测试:v1.0
 
 ### Todo List
@@ -35,5 +35,7 @@ version: 0.0.0
 - [ ] actor-pre-core架构优化单体性能.
 - [ ] 根据slot计算query时仅外围slot需要重新计算, 否则必在范围内. 可优化单体性能.
 - [ ] sub-aoe时可将相关slot传递, 减少计算量.
+- [ ] 释放AOE时, 有的用户可能已完成当前Step计算, 甚至已经到达next step, 会导致AOE存在遗漏.
+- [ ] 当前逻辑, 恢复时之前step的AOE会被直接忽略(因为受影响的用户需要目前无法计算出).
 - [ ] 每个step内的多个query可以合为一个, 降低服务器压力.
 - [ ] 为ComputeRequest实现系列From方法, 问就是更rustly.

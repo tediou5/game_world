@@ -92,24 +92,22 @@ impl openraft::RaftNetwork<crate::TypeConfig> for NetworkConnection {
             Ok(_) => self.retry_times = 0,
             Err(_) => {
                 self.retry_times += 1;
-                if self.retry_times > 5 {
-                    // TODO: remove node: Raft::change_membership()
-                    if let Some(raft) = crate::RAFT_CLIENT.get() &&
-                    let Some(current_leader) = raft.current_leader().await {
-                        let membership_config = &raft.metrics();
-                        let membership_config = &membership_config.borrow().membership_config;
-                        let leader = membership_config.membership().get_node(&current_leader).unwrap().clone();
-                        let mut members: std::collections::BTreeSet<crate::NodeId>= membership_config
-                            .nodes()
-                            .map(|(id, _)| *id)
-                            .collect();
-                        members.remove(&self.target_node.get_id().unwrap());
+                if self.retry_times > 5 &&
+                let Some(raft) = crate::RAFT_CLIENT.get() &&
+                let Some(current_leader) = raft.current_leader().await {
+                    let membership_config = &raft.metrics();
+                    let membership_config = &membership_config.borrow().membership_config;
+                    let leader = membership_config.membership().get_node(&current_leader).unwrap().clone();
+                    let mut members: std::collections::BTreeSet<crate::NodeId>= membership_config
+                        .nodes()
+                        .map(|(id, _)| *id)
+                        .collect();
+                    members.remove(&self.target_node.get_id().unwrap());
 
-                        tokio::task::spawn(async move {
-                            let _: Result<crate::typ::ClientWriteResponse, openraft::error::RPCError<u64, crate::node::Node, openraft::error::ClientWriteError<crate::NodeId, crate::Node>>>
-                                = Network::send_rpc(current_leader, &leader, "change-membership", members).await;
-                        });
-                    }
+                    tokio::task::spawn(async move {
+                        let _: Result<crate::typ::ClientWriteResponse, openraft::error::RPCError<u64, crate::node::Node, openraft::error::ClientWriteError<crate::NodeId, crate::Node>>>
+                            = Network::send_rpc(current_leader, &leader, "change-membership", members).await;
+                    });
                 }
             }
         }

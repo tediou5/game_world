@@ -18,6 +18,11 @@ impl Vector2 {
     pub fn lte(&self, other: &Vector2) -> bool {
         self.x <= other.x && self.y <= other.y
     }
+
+    pub fn move_once(&mut self, Vector2 { x, y }: &Vector2) {
+        self.x += 0.02 * x;
+        self.y += 0.02 * y;
+    }
 }
 
 #[cfg(test)]
