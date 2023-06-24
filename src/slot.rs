@@ -46,8 +46,8 @@ impl Slots {
     }
 
     pub fn move_to(&mut self, node: &crate::Node, slots: &[usize]) {
-        if self.inner.capacity() < 10000 {
-            self.inner.truncate(10000)
+        if self.inner.capacity() < 100 {
+            self.inner.truncate(100)
         }
         for slot in slots.iter() {
             // FIXME: panic if out of index
@@ -57,13 +57,14 @@ impl Slots {
 
     pub fn with_node(&self) -> std::collections::HashMap<u64, std::collections::HashSet<usize>> {
         let mut node_slots: std::collections::HashMap<
-            crate::Node,
+            &crate::Node,
             std::collections::HashSet<usize>,
         > = std::collections::HashMap::new();
 
         for (slot, node) in self.inner.iter().enumerate() {
-            node_slots.entry(node.clone()).or_default().insert(slot);
+            node_slots.entry(node).or_default().insert(slot);
         }
+        println!("slots: with_node: [node_slots]: {:?}", node_slots);
         node_slots
             .into_iter()
             .map(|(node, slots)| (node.get_id().unwrap(), slots))
@@ -77,19 +78,18 @@ impl Slots {
         let mut x = x + 100000.0;
         if x < 0.0 {
             x = 0.0;
-        } else if x > 200000.0 {
-            x = 200000.0;
+        } else if x >= 200000.0 {
+            x = 199999.0;
         }
 
         let x = (x / 20000.0) as usize;
 
         let mut y = y + 100000.0;
-        if y == 200000.0 {
-            y = 190000.0;
-        } else if y < 0.0 {
+        // let mod_y = (y % 20000.0) as usize;
+        if y < 0.0 {
             y = 0.0;
-        } else if y > 200000.0 {
-            y = 190000.0;
+        } else if y >= 200000.0 {
+            y = 199999.0;
         }
         let y = (y / 20000.0) as usize;
         let y = 10 * y;
@@ -156,30 +156,40 @@ mod test {
         };
         assert_eq!(0, Slots::from_position(&position));
         let position = Vector2 {
+            x: -99999.0,
+            y: -99999.0,
+        };
+        assert_eq!(0, Slots::from_position(&position));
+        let position = Vector2 {
+            x: 99999.0,
+            y: -99999.0,
+        };
+        assert_eq!(9, Slots::from_position(&position));
+        let position = Vector2 {
             x: 100000.0,
             y: -100000.0,
         };
-        assert_eq!(10, Slots::from_position(&position));
+        assert_eq!(9, Slots::from_position(&position));
         let position = Vector2 {
             x: 100000.0,
             y: 100000.0,
         };
-        assert_eq!(100, Slots::from_position(&position));
+        assert_eq!(99, Slots::from_position(&position));
         let position = Vector2 {
             x: 200000.0,
             y: 200000.0,
         };
-        assert_eq!(100, Slots::from_position(&position));
+        assert_eq!(99, Slots::from_position(&position));
         let position = Vector2 {
             x: 100000.0,
             y: 99999.0,
         };
-        assert_eq!(100, Slots::from_position(&position));
+        assert_eq!(99, Slots::from_position(&position));
         let position = Vector2 {
             x: 100000.0,
             y: 70000.0,
         };
-        assert_eq!(90, Slots::from_position(&position));
+        assert_eq!(89, Slots::from_position(&position));
         let position = Vector2 {
             x: 19000.0,
             y: 19000.0,
@@ -199,5 +209,19 @@ mod test {
         };
         let res = Slots::from_area(&min, &max);
         assert_eq!(vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34], res);
+    }
+
+    #[test]
+    fn from_area2() {
+        let min = Vector2 {
+            x: -100000.0,
+            y: -100000.0,
+        };
+        let max = Vector2 {
+            x: 100000.0,
+            y: 100000.0,
+        };
+        let res = Slots::from_area(&min, &max);
+        assert_eq!(Vec::from_iter(0..=100), res);
     }
 }

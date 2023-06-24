@@ -77,14 +77,8 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
         .unwrap();
 
     let users = match &node {
-        Node::User(_) => {
-            let users = std::collections::HashMap::new();
-            AppData::User(users.into())
-        }
-        Node::Compute(_) => {
-            let users = std::collections::HashMap::new();
-            AppData::Compute(users.into())
-        }
+        Node::User(_) => AppData::User(std::collections::HashMap::new().into()),
+        Node::Compute(_) => AppData::Compute(std::collections::HashMap::new().into()),
         Node::Unknow => panic!(),
     };
 
@@ -111,7 +105,7 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
 
     // Start the actix-web server.
     let server = actix_web::HttpServer::new(move || {
-        actix_web::App::new()
+        let server = actix_web::App::new()
             .wrap(actix_web::middleware::Logger::default())
             .wrap(actix_web::middleware::Logger::new("%a %{User-Agent}i"))
             .wrap(actix_web::middleware::Compress::default())
@@ -129,7 +123,23 @@ pub async fn start_raft_node(node: Node) -> std::io::Result<()> {
             // application API
             .service(network::api::write)
             .service(network::api::read)
-            .service(network::api::consistent_read)
+            .service(network::api::consistent_read);
+
+        match app.typ {
+            Node::User(_) => server
+                .service(network::user::login)
+                .service(network::user::logout)
+                .service(network::user::aoe)
+                .service(network::user::set_velcoity)
+                .service(network::user::update_user)
+                .service(network::user::query_users_info)
+                .service(network::user::next_step),
+            Node::Compute(_) => server
+                .service(network::compute::aoe)
+                .service(network::compute::merge)
+                .service(network::compute::query),
+            Node::Unknow => server,
+        }
     });
 
     let x = server.bind(socket_id::ipv4::from_u64(node_id).unwrap())?;

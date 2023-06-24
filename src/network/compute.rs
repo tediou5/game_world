@@ -22,7 +22,7 @@ pub async fn aoe(
                             ..
                         },
                     )| {
-                        position.length(user_position) < radius && (**user_id != uid)
+                        position.length(Some(user_position)) < radius && (**user_id != uid)
                     },
                 )
                 .for_each(|(_, user)| {
@@ -58,10 +58,12 @@ pub async fn merge(
     req: actix_web::web::Json<std::collections::HashMap<u64, crate::ComputeUser>>,
 ) -> actix_web::Result<impl actix_web::Responder> {
     let actix_web::web::Json(merge_users) = req;
+    println!("[{merge_users:?}] wait for merge");
     if let crate::AppData::Compute(users) = &app.users {
         let mut users = users.write().await;
         for (uid, user) in merge_users {
             users.entry(user.get_slot()).or_default().insert(uid, user);
+            println!("[{uid}] merged");
         }
     };
     Ok(actix_web::web::Json("ok"))

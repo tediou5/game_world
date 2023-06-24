@@ -21,13 +21,17 @@ pub async fn add_user(
 #[actix_web::post("/add-compute-node")]
 pub async fn add_computer(
     app: actix_web::web::Data<crate::App>,
-    req: actix_web::web::Json<String>,
+    req: actix_web::web::Json<Vec<String>>,
 ) -> actix_web::Result<impl actix_web::Responder> {
-    let addr = req.0;
-    let node_id = crate::socket_id::ipv4::into_u64(addr.as_str())?;
-    let node = crate::Node::Compute(addr);
-    let res = app.raft.add_learner(node_id, node, true).await;
-    Ok(actix_web::web::Json(res))
+    for addr in req.0 {
+        // let addr = req.0;
+        let node_id = crate::socket_id::ipv4::into_u64(addr.as_str())?;
+        let node = crate::Node::Compute(addr);
+        if let Err(e) = app.raft.add_learner(node_id, node, true).await {
+            return Ok(actix_web::web::Json(format!("Err: {}", e.to_string())));
+        };
+    }
+    Ok(actix_web::web::Json("ok".to_string()))
 }
 
 /// Changes specified learners to members, or remove members.

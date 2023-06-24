@@ -5,9 +5,13 @@ pub struct Vector2 {
 }
 
 impl Vector2 {
-    pub fn length(&self, other: &Vector2) -> f32 {
-        let x = (self.x - other.x).abs();
-        let y = (self.y - other.y).abs();
+    pub fn length(&self, other: Option<&Vector2>) -> f32 {
+        let (x, y) = if let Some(other) = other {
+            ((self.x - other.x).abs(), (self.y - other.y).abs())
+        } else {
+            (self.x, self.y)
+        };
+
         (x.powi(2) + y.powi(2)).sqrt()
     }
 

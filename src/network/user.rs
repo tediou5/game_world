@@ -14,6 +14,7 @@ pub async fn login(
         let Ok(addr) = node.get_addr() {
             let mut com_req: std::collections::HashMap<u64, crate::ComputeUser> = std::collections::HashMap::new();
             com_req.insert(uid, user.into());
+            println!("merge [{uid}] into <{addr}>");
             let url = format!("http://{addr}/merge");
             // FIXME: remove this unwrap
             app.http_client.put(url).json(&com_req).send().await.unwrap();
@@ -37,9 +38,10 @@ pub async fn query_users_info(
 
     for (node, slots) in nodes {
         if let Ok(addr) = node.get_addr() {
-            let url = format!("http://{addr}/query");
+            println!("query [{addr}] with {slots:?}");
+            let url = format!("http://{addr}/users");
             // FIXME: handle error
-            if let Ok(resp) = app.http_client.put(url).json(&slots).send().await &&
+            if let Ok(resp) = app.http_client.get(url).json(&slots).send().await &&
             let Ok(users) = resp.json::<std::collections::HashMap<u64, crate::ComputeUser>>().await {
                 users.into_iter().filter(|(_, crate::ComputeUser { position, ..})| position.gte(&min) && position.lte(&max)).collect_into(&mut res);
             };
@@ -70,6 +72,9 @@ pub async fn set_velcoity(
     req: actix_web::web::Json<crate::request::SetVelocity>,
 ) -> actix_web::Result<impl actix_web::Responder> {
     let actix_web::web::Json(set_velcoity) = req;
+    if set_velcoity.velocity.length(None) > 20.0 {
+        return Ok(actix_web::web::Json("set velocity error: the velcoity len cannot bigger than 20m/s"));
+    };
     let uid = set_velcoity.uid;
     let com_req = crate::ComputeRequest::SetVelocity(set_velcoity);
     if let crate::AppData::User(users) = &app.users {

@@ -17,9 +17,9 @@ impl App {
             AppData::User(_) => return Err(()),
             AppData::Compute(slots) => slots,
         };
-
         let mut req = std::collections::HashMap::new();
         let mut slots = slots.write().await;
+        println!(">>>>>>>>>Compute slots:\n{slots:?}\n<<<<<<<<<end");
         for (_, slot_users) in slots.iter() {
             for (uid, crate::user::ComputeUser { step, .. }) in slot_users {
                 req.insert(*uid, *step);
