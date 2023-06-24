@@ -6,6 +6,28 @@ pub struct ComputeUser {
     pub money: u64,
 }
 
+impl From<&User> for ComputeUser {
+    fn from(user: &User) -> Self {
+        Self {
+            step: user.step,
+            position: user.position.clone(),
+            velocity: user.velocity.clone(),
+            money: user.money,
+        }
+    }
+}
+
+impl From<&mut User> for ComputeUser {
+    fn from(user: &mut User) -> Self {
+        Self {
+            step: user.step,
+            position: user.position.clone(),
+            velocity: user.velocity.clone(),
+            money: user.money,
+        }
+    }
+}
+
 impl ComputeUser {
     pub fn get_slot(&self) -> usize {
         crate::Slots::from_position(&self.position)

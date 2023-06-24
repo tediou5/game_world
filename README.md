@@ -27,6 +27,7 @@ version: 0.8.0
 
 ### Todo List
 
+- [x] `BUG`user移动出slot后进行迁移.
 - [ ] user集群化Conhash分配user.
 - [ ] 集群快照动态更新.
 - [ ] slot保证连续以减小网络交互.

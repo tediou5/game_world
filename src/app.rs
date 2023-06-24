@@ -33,6 +33,10 @@ impl App {
             .find(|(_, node)| node.is_user_node())
         {
             let mut step_computes = std::collections::HashMap::new();
+            let mut moved_users: std::collections::HashMap<
+                &str, /* addr str */
+                std::collections::HashMap<u64, crate::ComputeUser>,
+            > = std::collections::HashMap::new();
             if let Ok(addr) = node.get_addr() {
                 let mut logout_users = std::collections::HashMap::new();
 
@@ -44,13 +48,36 @@ impl App {
                 };
                 let node_slots = &nodes.slots;
                 // TODO: compute user
-                for (_, slot_users) in slots.iter_mut() {
-                    for (uid, user) in slot_users {
+                for (slot, slot_users) in slots.iter_mut() {
+                    slot_users.retain(|uid, user| {
                         if let Some(steps) = step_computes.remove(uid) &&
                         let Some(logout) = user.compute(steps, node_slots, &self.http_client) {
                             logout_users.insert(*uid, logout);
                         };
-                    }
+                        let current_slot = user.get_slot();
+                        if current_slot != *slot {
+                            if let Some(node) = node_slots.get_node(*slot) &&
+                            let Ok(addr) = node.get_addr() {
+                                moved_users.entry(addr).or_default().insert(*uid, user.clone());
+                            };
+                            false
+                        } else {
+                            true
+                        }
+                    });
+                }
+
+                // move user to target slot
+                for (addr, move_user) in moved_users {
+                    let url = format!("http://{addr}/merge");
+                    // FIXME: remove this unwrap
+                    let _ = &self
+                        .http_client
+                        .put(url)
+                        .json(&move_user)
+                        .send()
+                        .await
+                        .unwrap();
                 }
 
                 // logout, callback to user node to update user info

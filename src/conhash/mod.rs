@@ -16,6 +16,7 @@ fn default_md5_hash_fn(input: &[u8]) -> Vec<u8> {
     hasher.finalize().to_vec()
 }
 
+#[allow(dead_code)]
 /// Consistent Hash
 pub struct ConsistentHash<N: Node> {
     hash_fn: fn(&[u8]) -> Vec<u8>,
@@ -40,6 +41,7 @@ impl<N: Node> ConsistentHash<N> {
         }
     }
 
+    #[allow(dead_code)]
     /// Add a new node
     pub fn add(&mut self, node: &N, num_replicas: usize) {
         let node_name = node.name();

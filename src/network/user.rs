@@ -6,14 +6,14 @@ pub async fn login(
     let actix_web::web::Json(crate::request::Uid { uid }) = req;
     if let crate::AppData::User(users) = &app.users {
         let mut user = users.write().await;
-        let user = user.entry(uid).or_default().clone();
+        let user = user.entry(uid).or_default();
         let slot = user.get_slot();
         let node = app.store.state_machine.read().await;
         let node = node.slots.get_node(slot);
         if let Some(node) = node &&
         let Ok(addr) = node.get_addr() {
-            let mut com_req = std::collections::HashMap::new();
-            com_req.insert(uid, user);
+            let mut com_req: std::collections::HashMap<u64, crate::ComputeUser> = std::collections::HashMap::new();
+            com_req.insert(uid, user.into());
             let url = format!("http://{addr}/merge");
             // FIXME: remove this unwrap
             app.http_client.put(url).json(&com_req).send().await.unwrap();
