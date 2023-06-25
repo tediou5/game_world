@@ -44,7 +44,7 @@ impl App {
                 // FIXME: handle error
                 if let Ok(resp) = self.http_client.get(url).json(&req).send().await &&
                 let Ok(steps) = resp.json::<std::collections::HashMap<u64, Vec<crate::request::StepCompute>>>().await {
-                    steps.clone_into(&mut step_computes);
+                    steps.into_iter().collect_into(&mut step_computes);
                 };
                 let node_slots = &nodes.slots;
                 // TODO: compute user
@@ -53,6 +53,7 @@ impl App {
                         if let Some(steps) = step_computes.remove(uid) &&
                         let Some(logout) = user.compute(steps, node_slots, &self.http_client) {
                             logout_users.insert(*uid, logout);
+                            return false;
                         };
                         let current_slot = user.get_slot();
                         if current_slot != *slot {

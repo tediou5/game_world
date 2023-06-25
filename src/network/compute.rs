@@ -45,7 +45,9 @@ pub async fn query(
         let user = users.read().await;
         for slot in slots.iter() {
             if let Some(slot_users) = user.get(slot) {
-                slot_users.clone_into(&mut res);
+                println!("slot_users: {slot_users:?}");
+                slot_users.clone().into_iter().collect_into(&mut res);
+                println!("slot_users collect_into res: {res:?}");
             }
         }
     }

@@ -17,7 +17,10 @@ pub async fn login(
             println!("merge [{uid}] into <{addr}>");
             let url = format!("http://{addr}/merge");
             // FIXME: remove this unwrap
-            app.http_client.put(url).json(&com_req).send().await.unwrap();
+            let client = app.http_client.clone();
+            tokio::task::spawn(async move {
+                client.put(url).json(&com_req).send().await.unwrap();
+            });
         };
     };
     Ok(actix_web::web::Json("ok"))
@@ -43,6 +46,7 @@ pub async fn query_users_info(
             // FIXME: handle error
             if let Ok(resp) = app.http_client.get(url).json(&slots).send().await &&
             let Ok(users) = resp.json::<std::collections::HashMap<u64, crate::ComputeUser>>().await {
+                print!("queried {:?}", users);
                 users.into_iter().filter(|(_, crate::ComputeUser { position, ..})| position.gte(&min) && position.lte(&max)).collect_into(&mut res);
             };
         };
